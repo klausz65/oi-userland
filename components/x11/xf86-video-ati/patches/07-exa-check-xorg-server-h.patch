@@ -1,0 +1,20 @@
+configure: the EXA version check preprocesses exa.h without xorg-server.h
+first.  Since xorg-server 1.13, servermd.h refuses that with
+"#error Drivers must include xorg-server.h before any other xserver
+headers", the check fails, and the driver is built without EXA.  On a
+server without XAA (1.19 has none, see 02.disable-xaa.patch) that leaves no
+2D acceleration at all, although the log says "Acceleration enabled".
+
+Upstream fixed the same check by including xorg-server.h first in later
+releases of xf86-video-ati; this is the same change for 6.14.6.
+
+--- a/configure.ac
++++ b/configure.ac
+@@ -184,6 +184,7 @@
+ if test "x$have_exa_h" = xyes; then
+         AC_MSG_CHECKING([whether EXA version is at least 2.0.0])
+         AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[
++#include "xorg-server.h"
+ #include "exa.h"
+ #if EXA_VERSION_MAJOR < 2
+ #error OLD EXA!

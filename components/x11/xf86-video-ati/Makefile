@@ -14,12 +14,16 @@
 #
 
 X11_CATEGORY=DRIVER
+ifeq ($(shell uname -p),sparc)
+# gcc 13 is the newest on OpenIndiana SPARC.
+GCC_VERSION = 13
+endif
 include ../../../make-rules/shared-macros.mk
 include $(WS_MAKE_RULES)/x11.mk
 
 COMPONENT_NAME= xf86-video-ati
 COMPONENT_VERSION= 6.14.6
-COMPONENT_REVISION= 6
+COMPONENT_REVISION= 9
 COMPONENT_FMRI= x11/server/xorg/driver/xorg-video-ati
 COMPONENT_SUMMARY= xf86-video-ati - ATI Radeon video driver for the Xorg X server
 COMPONENT_ARCHIVE_HASH= \
@@ -36,6 +40,15 @@ COMPONENT_PREP_ACTION = \
     automake -a -f -c && \
     autoconf && \
     cp $(COMPONENT_DIR)/srcs/i2c/*.h $(COMPONENT_DIR)/srcs/i2c/*.c src/ )
+
+ifeq ($(MACH),sparc)
+# efb, the kernel driver of the XVR-300, maps the registers little-endian
+# already.  With the server's default, MMIO_IN32/OUT32 swap a second time:
+# every register reads wrong and Xorg loops on "FIFO timed out".
+CFLAGS += -DMMIO_IS_BE
+# The installed xorg-server.h calls sparc little-endian, see the header.
+CFLAGS += -include $(COMPONENT_DIR)/files/sparc-byte-order.h
+endif
 
 # Paths to find libraries/modules to link with - libraries themselves listed
 # in src/Makefile.am since ATI has multiple submodules with different needs
