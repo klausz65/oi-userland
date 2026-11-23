@@ -1,0 +1,20 @@
+# MATE defaults for the XVR-300 without acceleration; users can override them.
+#
+# compositing-manager: marco gets SIGBUS in libXpresent on sparc
+# enable-animations:   mate-panel's slide-in never finishes without it
+# idle-activation:     the screen stays black after the screensaver
+
+[org/mate/marco/general]
+compositing-manager=false
+
+[org/mate/panel/general]
+enable-animations=false
+
+[org/mate/panel/toplevels/top]
+enable-animations=false
+
+[org/mate/panel/toplevels/bottom]
+enable-animations=false
+
+[org/mate/screensaver]
+idle-activation-enabled=false

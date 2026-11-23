@@ -1,0 +1,9 @@
+{
+    "dependencies": [
+        "x11/server/xorg/driver/xorg-video-ati"
+    ],
+    "fmris": [
+        "x11/server/xorg/config/xvr-300"
+    ],
+    "name": "xvr-300-config"
+}
