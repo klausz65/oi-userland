@@ -1,0 +1,34 @@
+From oracle/solaris-userland c358084b5d, components/x11/lib/mesa/patches/04-bigendian-transform.patch
+
+Mesa on SPARC makes an incorrect assumption about array format (array of bytes,
+each representing one channel) and packed format (integer where each byte is
+one channel) being the same. That is true on little endian, but not on big
+endian where those two are flipped.
+
+Since this broken part is just an optimization, we can safely remove it on SPARC.
+
+This was reported upstream:
+https://gitlab.freedesktop.org/mesa/mesa/-/issues/6001
+
+and accepted as part of:
+https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/19051
+https://gitlab.freedesktop.org/mesa/mesa/-/commit/677a3053fff397b05354a29bbe089
+
+--- src/mesa/main/format_utils.c
++++ src/mesa/main/format_utils.c
+@@ -387,11 +387,14 @@
+          } else if (src_array_format == RGBA8_UBYTE) {
+             assert(!_mesa_is_format_integer_color(dst_format));
+ 
++#if UTIL_ARCH_LITTLE_ENDIAN
+             if (dst_format == MESA_FORMAT_B8G8R8A8_UNORM) {
+                convert_ubyte_rgba_to_bgra(width, height, src, src_stride,
+                                           dst, dst_stride);
+             }
+-            else {
++            else
++#endif
++            {
+                for (row = 0; row < height; ++row) {
+                   _mesa_pack_ubyte_rgba_row(dst_format, width, src, dst);
+                   src += src_stride;

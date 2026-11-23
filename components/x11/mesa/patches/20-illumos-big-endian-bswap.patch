@@ -1,0 +1,17 @@
+util: CPU_TO_LE32 for big-endian illumos
+
+illumos has <endian.h>, so BYTE_ORDER is defined, but no <sys/endian.h>:
+on SPARC compiler.h fell into the BSD branch and did not compile.
+Found building Mesa 21.3.9 on OpenIndiana SPARC (sparcv7 and sparcv9).
+
+--- src/util/compiler.h
++++ src/util/compiler.h
+@@ -57,6 +57,8 @@
+ #elif defined(__OpenBSD__)
+ #include <sys/types.h>
+ #define CPU_TO_LE32( x )	htole32( x )
++#elif defined(__sun)
++#define CPU_TO_LE32( x )	__builtin_bswap32( x )
+ #else /*__linux__ */
+ #include <sys/endian.h>
+ #define CPU_TO_LE32( x )	bswap32( x )

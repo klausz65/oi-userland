@@ -29,13 +29,15 @@ license mesa.license license='Mesa License (Mixed: MIT, LGPLv2, others)'
 <transform file path=usr/lib/xorg/modules/dri.* -> add pkg.linted.userland.action001.2 true>
 
 # For several libraries we create direct links
-link path=usr/X11/lib/mesa target=../../lib/mesa
+# allow-dangling: the target is reached through a directory or through links
+# of other packages (ogl-select), which pkgdepend cannot follow.
+link path=usr/X11/lib/mesa target=../../lib/mesa pkg.tmp.allow-dangling=true
 link path=usr/lib/GL/$(MACH64)/libglapi.so.0 target=libglapi.so.0.0.0
 link path=usr/lib/GL/$(MACH64)/libglapi.so target=libglapi.so.0
 link path=usr/lib/GL/$(MACH64)/libglapi.so.0.0.0 target=../../mesa/$(MACH64)/libglapi.so.0.0.0
 
-link path=usr/lib/$(MACH64)/libGL.so.1 target=../GL/$(MACH64)/libGL.so.1  pkg.linted.userland.action002.0=true
-link path=usr/lib/$(MACH64)/libGL.so target=libGL.so.1
+link path=usr/lib/$(MACH64)/libGL.so.1 target=../GL/$(MACH64)/libGL.so.1  pkg.linted.userland.action002.0=true pkg.tmp.allow-dangling=true
+link path=usr/lib/$(MACH64)/libGL.so target=libGL.so.1 pkg.tmp.allow-dangling=true
 
 link path=usr/lib/$(MACH64)/libglapi.so.0 target=libglapi.so.0.0.0 
 link path=usr/lib/$(MACH64)/libglapi.so target=libglapi.so.0
@@ -49,9 +51,9 @@ link path=usr/lib/$(MACH64)/libgbm.so target=libgbm.so.1.0.0
 link path=usr/lib/$(MACH64)/libgbm.so.1 target=libgbm.so.1.0.0
 
 # Compat links
-link path=usr/X11/lib/$(MACH64)/libglapi.so.0 target=libglapi.so.0.0.0 
-link path=usr/X11/lib/$(MACH64)/libglapi.so target=libglapi.so.0 
-link path=usr/X11/lib/$(MACH64)/libglapi.so.0.0.0 target=../GL/$(MACH64)/libglapi.so.0.0.0 pkg.linted.userland.action002.0=true
+link path=usr/X11/lib/$(MACH64)/libglapi.so.0 target=libglapi.so.0.0.0 pkg.tmp.allow-dangling=true
+link path=usr/X11/lib/$(MACH64)/libglapi.so target=libglapi.so.0 pkg.tmp.allow-dangling=true
+link path=usr/X11/lib/$(MACH64)/libglapi.so.0.0.0 target=../GL/$(MACH64)/libglapi.so.0.0.0 pkg.linted.userland.action002.0=true pkg.tmp.allow-dangling=true
 
 # libGLU has moved to x11/library/glu 
 depend fmri=pkg:/x11/library/glu@9.0.0 type=require
@@ -152,3 +154,68 @@ hardlink path=usr/lib/xorg/modules/dri/$(MACH64)/kms_swrast_dri.so target=i915_d
 hardlink path=usr/lib/xorg/modules/dri/$(MACH64)/r600_dri.so target=i915_dri.so
 hardlink path=usr/lib/xorg/modules/dri/$(MACH64)/swrast_dri.so target=i915_dri.so
 file path=usr/share/drirc.d/00-mesa-defaults.conf
+
+# SPARC: r300 (XVR-300) in both word sizes, and the 32-bit libraries.
+# Entries from gmake sample-manifest.
+link path=usr/lib/mesa/$(MACH64)/vdpau/libvdpau_r300.so target=libvdpau_r300.so.1.0.0 variant.arch=sparc
+link path=usr/lib/mesa/$(MACH64)/vdpau/libvdpau_r300.so.1 target=libvdpau_r300.so.1.0.0 variant.arch=sparc
+link path=usr/lib/mesa/$(MACH64)/vdpau/libvdpau_r300.so.1.0 target=libvdpau_r300.so.1.0.0 variant.arch=sparc
+hardlink path=usr/lib/mesa/$(MACH64)/vdpau/libvdpau_r300.so.1.0.0 target=libvdpau_r600.so.1.0.0 variant.arch=sparc
+link path=usr/lib/mesa/libEGL.so target=libEGL.so.1 variant.arch=sparc
+link path=usr/lib/mesa/libEGL.so.1 target=libEGL.so.1.0.0 variant.arch=sparc
+file path=usr/lib/mesa/libEGL.so.1.0.0 variant.arch=sparc
+link path=usr/lib/mesa/libGL.so target=libGL.so.1 variant.arch=sparc
+link path=usr/lib/mesa/libGL.so.1 target=libGL.so.1.2.0 variant.arch=sparc
+file path=usr/lib/mesa/libGL.so.1.2.0 variant.arch=sparc
+link path=usr/lib/mesa/libGLESv1_CM.so target=libGLESv1_CM.so.1 variant.arch=sparc
+link path=usr/lib/mesa/libGLESv1_CM.so.1 target=libGLESv1_CM.so.1.1.0 variant.arch=sparc
+file path=usr/lib/mesa/libGLESv1_CM.so.1.1.0 variant.arch=sparc
+link path=usr/lib/mesa/libGLESv2.so target=libGLESv2.so.2 variant.arch=sparc
+link path=usr/lib/mesa/libGLESv2.so.2 target=libGLESv2.so.2.0.0 variant.arch=sparc
+file path=usr/lib/mesa/libGLESv2.so.2.0.0 variant.arch=sparc
+link path=usr/lib/mesa/libOSMesa.so target=libOSMesa.so.8 variant.arch=sparc
+link path=usr/lib/mesa/libOSMesa.so.8 target=libOSMesa.so.8.0.0 variant.arch=sparc
+file path=usr/lib/mesa/libOSMesa.so.8.0.0 variant.arch=sparc
+link path=usr/lib/mesa/libXvMCr600.so target=libXvMCr600.so.1.0.0 variant.arch=sparc
+link path=usr/lib/mesa/libXvMCr600.so.1 target=libXvMCr600.so.1.0.0 variant.arch=sparc
+link path=usr/lib/mesa/libXvMCr600.so.1.0 target=libXvMCr600.so.1.0.0 variant.arch=sparc
+file path=usr/lib/mesa/libXvMCr600.so.1.0.0 variant.arch=sparc
+link path=usr/lib/mesa/libgbm.so target=libgbm.so.1 variant.arch=sparc
+link path=usr/lib/mesa/libgbm.so.1 target=libgbm.so.1.0.0 variant.arch=sparc
+file path=usr/lib/mesa/libgbm.so.1.0.0 variant.arch=sparc
+link path=usr/lib/mesa/libglapi.so target=libglapi.so.0 variant.arch=sparc
+link path=usr/lib/mesa/libglapi.so.0 target=libglapi.so.0.0.0 variant.arch=sparc
+file path=usr/lib/mesa/libglapi.so.0.0.0 variant.arch=sparc
+link path=usr/lib/mesa/libxatracker.so target=libxatracker.so.2 variant.arch=sparc
+link path=usr/lib/mesa/libxatracker.so.2 target=libxatracker.so.2.5.0 variant.arch=sparc
+file path=usr/lib/mesa/libxatracker.so.2.5.0 variant.arch=sparc
+file path=usr/lib/mesa/pkgconfig/dri.pc variant.arch=sparc
+file path=usr/lib/mesa/pkgconfig/egl.pc variant.arch=sparc
+file path=usr/lib/mesa/pkgconfig/gbm.pc variant.arch=sparc
+file path=usr/lib/mesa/pkgconfig/gl.pc variant.arch=sparc
+file path=usr/lib/mesa/pkgconfig/glesv1_cm.pc variant.arch=sparc
+file path=usr/lib/mesa/pkgconfig/glesv2.pc variant.arch=sparc
+file path=usr/lib/mesa/pkgconfig/osmesa.pc variant.arch=sparc
+file path=usr/lib/mesa/pkgconfig/xatracker.pc variant.arch=sparc
+link path=usr/lib/mesa/vdpau/libvdpau_r300.so target=libvdpau_r300.so.1.0.0 variant.arch=sparc
+link path=usr/lib/mesa/vdpau/libvdpau_r300.so.1 target=libvdpau_r300.so.1.0.0 variant.arch=sparc
+link path=usr/lib/mesa/vdpau/libvdpau_r300.so.1.0 target=libvdpau_r300.so.1.0.0 variant.arch=sparc
+file path=usr/lib/mesa/vdpau/libvdpau_r300.so.1.0.0 variant.arch=sparc
+link path=usr/lib/mesa/vdpau/libvdpau_r600.so target=libvdpau_r600.so.1.0.0 variant.arch=sparc
+link path=usr/lib/mesa/vdpau/libvdpau_r600.so.1 target=libvdpau_r600.so.1.0.0 variant.arch=sparc
+link path=usr/lib/mesa/vdpau/libvdpau_r600.so.1.0 target=libvdpau_r600.so.1.0.0 variant.arch=sparc
+hardlink path=usr/lib/mesa/vdpau/libvdpau_r600.so.1.0.0 target=libvdpau_r300.so.1.0.0 variant.arch=sparc
+hardlink path=usr/lib/xorg/modules/dri/$(MACH64)/r300_dri.so target=i915_dri.so variant.arch=sparc
+hardlink path=usr/lib/xorg/modules/dri/i915_dri.so target=r300_dri.so variant.arch=sparc
+hardlink path=usr/lib/xorg/modules/dri/kms_swrast_dri.so target=r300_dri.so variant.arch=sparc
+file path=usr/lib/xorg/modules/dri/r300_dri.so variant.arch=sparc
+hardlink path=usr/lib/xorg/modules/dri/r600_dri.so target=r300_dri.so variant.arch=sparc
+hardlink path=usr/lib/xorg/modules/dri/swrast_dri.so target=r300_dri.so variant.arch=sparc
+link path=usr/lib/pkgconfig/dri.pc target=../mesa/pkgconfig/dri.pc variant.arch=sparc
+link path=usr/lib/pkgconfig/egl.pc target=../mesa/pkgconfig/egl.pc variant.arch=sparc
+link path=usr/lib/pkgconfig/gbm.pc target=../mesa/pkgconfig/gbm.pc variant.arch=sparc
+link path=usr/lib/pkgconfig/gl.pc target=../mesa/pkgconfig/gl.pc variant.arch=sparc
+link path=usr/lib/pkgconfig/glesv1_cm.pc target=../mesa/pkgconfig/glesv1_cm.pc variant.arch=sparc
+link path=usr/lib/pkgconfig/glesv2.pc target=../mesa/pkgconfig/glesv2.pc variant.arch=sparc
+link path=usr/lib/pkgconfig/osmesa.pc target=../mesa/pkgconfig/osmesa.pc variant.arch=sparc
+link path=usr/lib/pkgconfig/xatracker.pc target=../mesa/pkgconfig/xatracker.pc variant.arch=sparc

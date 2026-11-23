@@ -10,7 +10,7 @@
 #
 
 #
-# Copyright 2024 <contributor>
+# Copyright 2026 <contributor>
 #
 
 set name=pkg.fmri value=pkg:/$(COMPONENT_FMRI)@$(IPS_COMPONENT_VERSION),$(BUILD_VERSION)
@@ -44,14 +44,11 @@ file path=usr/include/KHR/khrplatform.h
 file path=usr/include/gbm.h
 file path=usr/include/mesa/gl.h
 file path=usr/include/mesa/glcorearb.h
-link path=usr/include/GL/glcorearb.h target=../mesa/glcorearb.h
 file path=usr/include/mesa/glext.h
 file path=usr/include/mesa/glx.h
 file path=usr/include/mesa/glxext.h
 file path=usr/include/mesa/internal/dri_interface.h
-link path=usr/include/GL/internal/dri_interface.h target=../../mesa/internal/dri_interface.h
 file path=usr/include/mesa/osmesa.h
-link path=usr/include/GL/osmesa.h target=../mesa/osmesa.h
 file path=usr/include/xa_composite.h
 file path=usr/include/xa_context.h
 file path=usr/include/xa_tracker.h
@@ -91,15 +88,78 @@ file path=usr/lib/mesa/$(MACH64)/pkgconfig/glesv1_cm.pc
 file path=usr/lib/mesa/$(MACH64)/pkgconfig/glesv2.pc
 file path=usr/lib/mesa/$(MACH64)/pkgconfig/osmesa.pc
 file path=usr/lib/mesa/$(MACH64)/pkgconfig/xatracker.pc
+link path=usr/lib/mesa/$(MACH64)/vdpau/libvdpau_r300.so \
+    target=libvdpau_r300.so.1.0.0
+link path=usr/lib/mesa/$(MACH64)/vdpau/libvdpau_r300.so.1 \
+    target=libvdpau_r300.so.1.0.0
+link path=usr/lib/mesa/$(MACH64)/vdpau/libvdpau_r300.so.1.0 \
+    target=libvdpau_r300.so.1.0.0
+file path=usr/lib/mesa/$(MACH64)/vdpau/libvdpau_r300.so.1.0.0
 link path=usr/lib/mesa/$(MACH64)/vdpau/libvdpau_r600.so \
     target=libvdpau_r600.so.1.0.0
 link path=usr/lib/mesa/$(MACH64)/vdpau/libvdpau_r600.so.1 \
     target=libvdpau_r600.so.1.0.0
 link path=usr/lib/mesa/$(MACH64)/vdpau/libvdpau_r600.so.1.0 \
     target=libvdpau_r600.so.1.0.0
-file path=usr/lib/mesa/$(MACH64)/vdpau/libvdpau_r600.so.1.0.0
-hardlink path=usr/lib/xorg/modules/dri/$(MACH64/i915_dri.so target=kms_swrast_dri.so
+hardlink path=usr/lib/mesa/$(MACH64)/vdpau/libvdpau_r600.so.1.0.0 \
+    target=libvdpau_r300.so.1.0.0
+link path=usr/lib/mesa/libEGL.so target=libEGL.so.1
+link path=usr/lib/mesa/libEGL.so.1 target=libEGL.so.1.0.0
+file path=usr/lib/mesa/libEGL.so.1.0.0
+link path=usr/lib/mesa/libGL.so target=libGL.so.1
+link path=usr/lib/mesa/libGL.so.1 target=libGL.so.1.2.0
+file path=usr/lib/mesa/libGL.so.1.2.0
+link path=usr/lib/mesa/libGLESv1_CM.so target=libGLESv1_CM.so.1
+link path=usr/lib/mesa/libGLESv1_CM.so.1 target=libGLESv1_CM.so.1.1.0
+file path=usr/lib/mesa/libGLESv1_CM.so.1.1.0
+link path=usr/lib/mesa/libGLESv2.so target=libGLESv2.so.2
+link path=usr/lib/mesa/libGLESv2.so.2 target=libGLESv2.so.2.0.0
+file path=usr/lib/mesa/libGLESv2.so.2.0.0
+link path=usr/lib/mesa/libOSMesa.so target=libOSMesa.so.8
+link path=usr/lib/mesa/libOSMesa.so.8 target=libOSMesa.so.8.0.0
+file path=usr/lib/mesa/libOSMesa.so.8.0.0
+link path=usr/lib/mesa/libXvMCr600.so target=libXvMCr600.so.1.0.0
+link path=usr/lib/mesa/libXvMCr600.so.1 target=libXvMCr600.so.1.0.0
+link path=usr/lib/mesa/libXvMCr600.so.1.0 target=libXvMCr600.so.1.0.0
+file path=usr/lib/mesa/libXvMCr600.so.1.0.0
+link path=usr/lib/mesa/libgbm.so target=libgbm.so.1
+link path=usr/lib/mesa/libgbm.so.1 target=libgbm.so.1.0.0
+file path=usr/lib/mesa/libgbm.so.1.0.0
+link path=usr/lib/mesa/libglapi.so target=libglapi.so.0
+link path=usr/lib/mesa/libglapi.so.0 target=libglapi.so.0.0.0
+file path=usr/lib/mesa/libglapi.so.0.0.0
+link path=usr/lib/mesa/libxatracker.so target=libxatracker.so.2
+link path=usr/lib/mesa/libxatracker.so.2 target=libxatracker.so.2.5.0
+file path=usr/lib/mesa/libxatracker.so.2.5.0
+file path=usr/lib/mesa/pkgconfig/dri.pc
+file path=usr/lib/mesa/pkgconfig/egl.pc
+file path=usr/lib/mesa/pkgconfig/gbm.pc
+file path=usr/lib/mesa/pkgconfig/gl.pc
+file path=usr/lib/mesa/pkgconfig/glesv1_cm.pc
+file path=usr/lib/mesa/pkgconfig/glesv2.pc
+file path=usr/lib/mesa/pkgconfig/osmesa.pc
+file path=usr/lib/mesa/pkgconfig/xatracker.pc
+link path=usr/lib/mesa/vdpau/libvdpau_r300.so target=libvdpau_r300.so.1.0.0
+link path=usr/lib/mesa/vdpau/libvdpau_r300.so.1 target=libvdpau_r300.so.1.0.0
+link path=usr/lib/mesa/vdpau/libvdpau_r300.so.1.0 target=libvdpau_r300.so.1.0.0
+file path=usr/lib/mesa/vdpau/libvdpau_r300.so.1.0.0
+link path=usr/lib/mesa/vdpau/libvdpau_r600.so target=libvdpau_r600.so.1.0.0
+link path=usr/lib/mesa/vdpau/libvdpau_r600.so.1 target=libvdpau_r600.so.1.0.0
+link path=usr/lib/mesa/vdpau/libvdpau_r600.so.1.0 target=libvdpau_r600.so.1.0.0
+hardlink path=usr/lib/mesa/vdpau/libvdpau_r600.so.1.0.0 \
+    target=libvdpau_r300.so.1.0.0
+hardlink path=usr/lib/xorg/modules/dri/$(MACH64)/i915_dri.so \
+    target=kms_swrast_dri.so
 file path=usr/lib/xorg/modules/dri/$(MACH64)/kms_swrast_dri.so
-hardlink path=usr/lib/xorg/modules/dri/$(MACH64)/r600_dri.so target=kms_swrast_dri.so
-hardlink path=usr/lib/xorg/modules/dri/$(MACH64)/swrast_dri.so target=kms_swrast_dri.so
+hardlink path=usr/lib/xorg/modules/dri/$(MACH64)/r300_dri.so \
+    target=kms_swrast_dri.so
+hardlink path=usr/lib/xorg/modules/dri/$(MACH64)/r600_dri.so \
+    target=kms_swrast_dri.so
+hardlink path=usr/lib/xorg/modules/dri/$(MACH64)/swrast_dri.so \
+    target=kms_swrast_dri.so
+hardlink path=usr/lib/xorg/modules/dri/i915_dri.so target=r300_dri.so
+hardlink path=usr/lib/xorg/modules/dri/kms_swrast_dri.so target=r300_dri.so
+file path=usr/lib/xorg/modules/dri/r300_dri.so
+hardlink path=usr/lib/xorg/modules/dri/r600_dri.so target=r300_dri.so
+hardlink path=usr/lib/xorg/modules/dri/swrast_dri.so target=r300_dri.so
 file path=usr/share/drirc.d/00-mesa-defaults.conf
