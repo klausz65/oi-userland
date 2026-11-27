@@ -1,0 +1,31 @@
+qcommon/vm_sparc: don't free the hunk-allocated instructionPointers
+
+On 64-bit SPARC (__arch64__) VM_Compile() freed vm->instructionPointers with
+Z_Free() and reallocated it with Z_Malloc(count * sizeof(void *)). That was
+needed while instructionPointers was an int array from the zone. Today
+VM_Create() allocates it with Hunk_Alloc() as an intptr_t array, whose
+entries already have pointer size on LP64, so the block only frees a hunk
+pointer: "Z_Free: freed a pointer without ZONEID", a fatal error as soon as
+a QVM is compiled (vm_ui 2 etc.) on sparcv9. Remove the block.
+
+Tested: OpenIndiana SPARC (sparcv9, Sun Ultra 45), vm_* 2 into q3dm1.
+32-bit SPARC and other architectures are not affected (the block is
+__arch64__ only).
+
+Upstream: not submitted yet (patch prepared for github.com/ioquake/ioq3).
+
+--- ioq3-87a99d18206e878a20289f05ac3c16005dcae5c3/code/qcommon/vm_sparc.c.orig
++++ ioq3-87a99d18206e878a20289f05ac3c16005dcae5c3/code/qcommon/vm_sparc.c
+@@ -1632,12 +1632,6 @@
+ 	fi.first = Z_Malloc(sizeof(struct src_insn));
+ 	fi.first->next = NULL;
+ 
+-#ifdef __arch64__
+-	Z_Free(vm->instructionPointers);
+-	vm->instructionPointers = Z_Malloc(header->instructionCount *
+-					   sizeof(void *));
+-#endif
+-
+ 	fi.dst_by_i_count = (struct dst_insn **) vm->instructionPointers;
+ 	memset(fi.dst_by_i_count, 0, header->instructionCount * sizeof(void *));
+ 

@@ -1,0 +1,143 @@
+client: fall back to opengl1 when a renderer fails to initialise
+
+CL_InitRef already falls back to the default renderer when a renderer
+library cannot be loaded, but not when a loaded renderer fails in its own
+initialisation. That happens with renderer_opengl2 on GPUs whose GLSL limits
+its shaders exceed (e.g. the ATI RV370 of a Sun XVR-300, OpenGL 2.1:
+"shaders failed to link"). The ERR_DROP from R_Init then enters Com_Error,
+whose cleanup calls CL_FlushMemory -> CL_StartHunkUsers -> CL_InitRenderer
+and starts the same renderer again; it fails again while com_errorEntered
+is set: "recursive error after: shaders failed to link". At startup the
+renderer runs inside Com_Init, so any such error is fatal.
+
+CL_InitRenderer now marks the renderer's start and sets its own abortframe
+around re.BeginRegistration. Com_Error hands an ERR_DROP or ERR_FATAL
+during that start straight back (no cleanup that would restart the same
+renderer). CL_InitRenderer then shuts the failed renderer down (RE_Shutdown
+is safe after a partial R_Init: it frees nothing unless tr.registered),
+switches cl_renderer to opengl1, loads and starts it. If opengl1 itself
+fails, the error is fatal as before. Builds without USE_RENDERER_DLOPEN are
+unchanged.
+
+Tested: OpenIndiana SPARC (sparcv9, Sun Ultra 45, XVR-300 / Mesa r300):
+opengl2 fails to link, the client continues with opengl1 into q3dm1.
+x86_64: opengl2 starts as before (no fallback path taken).
+
+Upstream: not submitted yet (patch prepared for github.com/ioquake/ioq3).
+
+--- ioq3-87a99d18206e878a20289f05ac3c16005dcae5c3/code/client/cl_main.c.orig
++++ ioq3-87a99d18206e878a20289f05ac3c16005dcae5c3/code/client/cl_main.c
+@@ -23,6 +23,7 @@
+ 
+ #include "client.h"
+ #include <limits.h>
++#include <setjmp.h>
+ 
+ #include "../sys/sys_local.h"
+ #include "../sys/sys_loadlib.h"
+@@ -3166,14 +3167,61 @@
+ #endif
+ }
+ 
++#ifdef USE_RENDERER_DLOPEN
++#define FALLBACK_RENDERER "opengl1"
++
++static qboolean cl_rendererStarting;
++extern jmp_buf abortframe;
++
++qboolean CL_RendererStarting( void ) {
++	return cl_rendererStarting;
++}
++#else
++qboolean CL_RendererStarting( void ) {
++	return qfalse;
++}
++#endif
++
+ /*
+ ============
+ CL_InitRenderer
+ ============
+ */
+ void CL_InitRenderer( void ) {
++#ifdef USE_RENDERER_DLOPEN
++	jmp_buf savedframe;
++
++	// If the renderer fails in its own initialisation (Com_Error sends that
++	// error here), shut it down and start the fallback renderer instead,
++	// as CL_InitRef does for a renderer library that does not load.
++	Com_Memcpy( savedframe, abortframe, sizeof( savedframe ) );
++	cl_rendererStarting = qtrue;
++	if ( setjmp( abortframe ) ) {
++		char failed[MAX_CVAR_VALUE_STRING];
++
++		cl_rendererStarting = qfalse;
++		Com_Memcpy( abortframe, savedframe, sizeof( abortframe ) );
++		Q_strncpyz( failed, cl_renderer->string, sizeof( failed ) );
++		if ( !Q_stricmp( failed, FALLBACK_RENDERER ) ) {
++			Com_Error( ERR_FATAL, "Renderer %s failed to start: %s", failed,
++				Cvar_VariableString( "com_errorMessage" ) );
++		}
++		Com_Printf( S_COLOR_YELLOW "WARNING: renderer %s failed to start (%s), "
++			"using " FALLBACK_RENDERER "\n", failed,
++			Cvar_VariableString( "com_errorMessage" ) );
++		CL_ShutdownRef();
++		Cvar_Set( "cl_renderer", FALLBACK_RENDERER );
++		CL_InitRef();
++		CL_InitRenderer();
++		return;
++	}
++#endif
+ 	// this sets up the renderer and calls R_Init
+ 	re.BeginRegistration( &cls.glconfig );
++#ifdef USE_RENDERER_DLOPEN
++	cl_rendererStarting = qfalse;
++	Com_Memcpy( abortframe, savedframe, sizeof( abortframe ) );
++#endif
+ 
+ 	// load character sets
+ 	cls.charSetShader = re.RegisterShader( "gfx/2d/bigchars" );
+--- ioq3-87a99d18206e878a20289f05ac3c16005dcae5c3/code/qcommon/common.c.orig
++++ ioq3-87a99d18206e878a20289f05ac3c16005dcae5c3/code/qcommon/common.c
+@@ -303,6 +303,16 @@
+ 
+ 	restartClient = com_gameClientRestarting && !( com_cl_running && com_cl_running->integer );
+ 
++	// An error inside a renderer's initialisation (e.g. its shaders do not
++	// link on this GPU) goes back to CL_InitRenderer, which can start
++	// another renderer. The usual cleanup would restart the same renderer
++	// and fail again ("recursive error").
++	if ( ( code == ERR_DROP || code == ERR_FATAL ) && CL_RendererStarting() ) {
++		Com_Printf( "********************\nERROR: %s\n********************\n", com_errorMessage );
++		com_errorEntered = qfalse;
++		longjmp( abortframe, -1 );
++	}
++
+ 	com_gameRestarting = qfalse;
+ 	com_gameClientRestarting = qfalse;
+ 
+--- ioq3-87a99d18206e878a20289f05ac3c16005dcae5c3/code/qcommon/qcommon.h.orig
++++ ioq3-87a99d18206e878a20289f05ac3c16005dcae5c3/code/qcommon/qcommon.h
+@@ -1017,6 +1017,9 @@
+ // shutdown client
+ 
+ void CL_InitRef(void);
++qboolean CL_RendererStarting(void);
++// a renderer is in its initialisation: Com_Error leaves it to
++// CL_InitRenderer, which can fall back to another renderer
+ // initialize renderer interface
+ 
+ void CL_StartHunkUsers( qboolean rendererOnly );
+--- ioq3-87a99d18206e878a20289f05ac3c16005dcae5c3/code/null/null_client.c.orig
++++ ioq3-87a99d18206e878a20289f05ac3c16005dcae5c3/code/null/null_client.c
+@@ -91,6 +91,10 @@
+ void CL_StartHunkUsers( qboolean rendererOnly ) {
+ }
+ 
++qboolean CL_RendererStarting(void) {
++	return qfalse;
++}
++
+ void CL_InitRef(void)
+ {
+ }

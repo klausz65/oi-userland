@@ -1,0 +1,31 @@
+qcommon: pass vmMain arguments as an array on all but 32-bit x86
+
+VM_Call() hands the interpreter and the compiled VM a pointer to callnum,
+(int *)&callnum, on id386 and idsparc, assuming that the variadic int
+arguments follow callnum in memory as 32-bit slots. On 32-bit SPARC gcc
+spills the register arguments of a variadic function to consecutive
+words, so this happened to work. On 64-bit SPARC (sparcv9, idsparc as
+well) arguments occupy 8-byte slots, and the QVM receives garbage:
+"UI_SetActiveMenu: bad enum" in the UI, with the interpreter (vm_ui 1)
+and the sparc compiler (vm_ui 2) alike.
+
+Copy the arguments into the int array as on every other platform; keep
+the shortcut for 32-bit x86 only, where the cdecl stack layout guarantees
+it. The array path already serves PPC, x86_64 and the rest.
+
+Tested: OpenIndiana SPARC (sparcv9, Sun Ultra 45): menus and q3dm1 with
+vm_* 1 and 2; x86_64 builds take the same path as before.
+
+Upstream: not submitted yet (patch prepared for github.com/ioquake/ioq3).
+
+--- ioq3-87a99d18206e878a20289f05ac3c16005dcae5c3/code/qcommon/vm.c.orig
++++ ioq3-87a99d18206e878a20289f05ac3c16005dcae5c3/code/qcommon/vm.c
+@@ -837,7 +837,7 @@
+                             args[4],  args[5],  args[6], args[7],
+                             args[8],  args[9], args[10], args[11]);
+ 	} else {
+-#if ( id386 || idsparc ) && !defined __clang__ // calling convention doesn't need conversion in some cases
++#if id386 && !defined __clang__ // calling convention doesn't need conversion in some cases
+ #ifdef HAVE_VM_COMPILED
+ 		if ( vm->compiled )
+ 			r = VM_CallCompiled( vm, (int*)&callnum );

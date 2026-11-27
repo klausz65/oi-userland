@@ -1,0 +1,133 @@
+qcommon/vm_sparc: follow the 64-bit SPARC (V9) ABI in the generated code
+
+Two defects make every compiled QVM (vm_* 2) die with SIGBUS on sparcv9;
+32-bit SPARC is not affected (its values are unchanged).
+
+1. OP_JUMP and OP_CALL with a computed target index vm->instructionPointers
+   with "sll idx, 2" and then load the entry with ldx. The table holds
+   intptr_t entries, 8 bytes on LP64, so the index must be shifted by 3:
+   the shift by 2 read the wrong entry, at an unaligned address (FLTACCESS
+   on ldx [table + idx*4]).
+
+2. The V9 ABI biases %sp/%fp by 2047 and requires a minimum frame of 176
+   bytes (16 doubleword save area + 6 argument doublewords). The generated
+   functions and the call thunk used "save %sp, -128, %sp" and kept the
+   int/float conversion temporary at [%sp + 128], i.e. without the bias:
+   below the stack, unaligned (FLTACCESS on st [%sp + 0x80]). The frame is
+   now VM_STACK_MINFRAME (176 on 64-bit) and the temporary sits at
+   VM_STACK_BIAS + VM_STACK_MINFRAME.
+
+Found with DTrace proc:::fault on the generated code: pc, faulting address
+and the instruction words around pc.
+
+Tested: OpenIndiana SPARC (sparcv9, Sun Ultra 45), vm_* 2: menus, q3dm1.
+
+Upstream: not submitted yet (patch prepared for github.com/ioquake/ioq3).
+
+--- ioq3-87a99d18206e878a20289f05ac3c16005dcae5c3/code/qcommon/vm_sparc.c.orig
++++ ioq3-87a99d18206e878a20289f05ac3c16005dcae5c3/code/qcommon/vm_sparc.c
+@@ -122,6 +122,26 @@
+ #define SL(a, b) (a)
+ #endif
+ 
++/*
++ * Stack frames of the generated code. 32-bit: the 16-word register window
++ * save area. 64-bit (V9 ABI): %sp and %fp are biased by 2047, and a frame
++ * holds the 16-doubleword save area plus the six argument doublewords a
++ * callee may store into (176 bytes, a multiple of 16). VM_STACK_TMP is the
++ * 4-byte temporary that functions converting between int and float add
++ * above that minimum.
++ */
++#ifdef __arch64__
++#define VM_STACK_BIAS	2047
++#define VM_STACK_MINFRAME	176
++#else
++#define VM_STACK_BIAS	0
++#define VM_STACK_MINFRAME	64
++#endif
++#define VM_STACK_TMP	(VM_STACK_BIAS + VM_STACK_MINFRAME)
++
++/* log2 of the size of an instructionPointers entry (intptr_t) */
++#define VM_IPTR_SHIFT	SL(2, 3)
++
+ #define rTMP		G1
+ #define rVMDATA		G2
+ #define rPSTACK		G3
+@@ -958,7 +978,7 @@
+ 		break;
+ 
+ 	case OP_ENTER: {
+-		int stack = SL(64, 128);
++		int stack = VM_STACK_MINFRAME;
+ 
+ 		if (fp->need_float_tmp)
+ 			stack += 16;
+@@ -996,8 +1016,8 @@
+ 			} else
+ 				in(ADDI, rPSTACK, sp->arg.si, rPSTACK);
+ 			if (sp->src1_reg_flags & REG_FLAGS_FLOAT) {
+-				in(STFI, O6, SL(64, 128), fFIRST(fp));
+-				in(LDUWI, O6, SL(64, 128), O0);
++				in(STFI, O6, VM_STACK_TMP, fFIRST(fp));
++				in(LDUWI, O6, VM_STACK_TMP, O0);
+ 				in(JMPLI, I7, 8, G0);
+ 				in(RESTORE, O0, G0, O0);
+ 				POP_FPR(fp);
+@@ -1022,7 +1042,7 @@
+ 			in(BLEU, +4*5);
+ 			in(LDLI, rVMDATA, VM_Data_Offset(ErrJump), rTMP);
+ 
+-			in(SLLI, rFIRST(fp), 2, rFIRST(fp));
++			in(SLLI, rFIRST(fp), VM_IPTR_SHIFT, rFIRST(fp));
+ 			in(LDLI, rVMDATA, VM_Data_Offset(iPointers), rTMP);
+ 			in(LDL, rTMP, rFIRST(fp), rTMP);
+ 			in(JMPL, rTMP, G0, G0);
+@@ -1056,7 +1076,7 @@
+ 			in(BLEU, +4*9);
+ 			in(LDLI, rVMDATA, VM_Data_Offset(ErrJump), rTMP);
+ 			in(LDLI, rVMDATA, VM_Data_Offset(iPointers), O5);
+-			in(SLLI, rFIRST(fp), 2, rFIRST(fp));
++			in(SLLI, rFIRST(fp), VM_IPTR_SHIFT, rFIRST(fp));
+ 			in(LDL, O5, rFIRST(fp), rTMP);
+ 			in(BA, +4*4);
+ 			in(NOP);
+@@ -1401,8 +1421,8 @@
+ 	case OP_CVIF:
+ 		MAYBE_EMIT_CONST(fp);
+ 		PUSH_FPR(fp);
+-		in(STWI, O6, SL(64, 128), rFIRST(fp));
+-		in(LDFI, O6, SL(64, 128), fFIRST(fp));
++		in(STWI, O6, VM_STACK_TMP, rFIRST(fp));
++		in(LDFI, O6, VM_STACK_TMP, fFIRST(fp));
+ 		in(FITOS, fFIRST(fp), fFIRST(fp));
+ 		POP_GPR(fp);
+ 		break;
+@@ -1410,8 +1430,8 @@
+ 		MAYBE_EMIT_CONST(fp);
+ 		PUSH_GPR(fp);
+ 		in(FSTOI, fFIRST(fp), fFIRST(fp));
+-		in(STFI, O6, SL(64, 128), fFIRST(fp));
+-		in(LDUWI, O6, SL(64, 128), rFIRST(fp));
++		in(STFI, O6, VM_STACK_TMP, fFIRST(fp));
++		in(LDUWI, O6, VM_STACK_TMP, rFIRST(fp));
+ 		POP_FPR(fp);
+ 		break;
+ 	}
+@@ -1450,7 +1470,7 @@
+ 	fp->fpr_pos = F0;
+ 	fp->insn_index = 0;
+ 
+-	fp->stack_space = SL(64, 128);
++	fp->stack_space = VM_STACK_MINFRAME;
+ 	fp->cached_const = NULL;
+ 
+ 	sp = fp->first;
+@@ -1478,7 +1498,7 @@
+ 
+ 	/* int call_thunk(int arg0, int arg1, int arg2, int (*func)(int int int)) */
+ #define CALL_THUNK_INSN_OFFSET		5
+-	in(SAVEI, O6, -SL(64, 128), O6);
++	in(SAVEI, O6, -VM_STACK_MINFRAME, O6);
+ 
+ 	in(OR, G0, rVMDATA, L0);
+ 	in(OR, G0, rPSTACK, L1);
